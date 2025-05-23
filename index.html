@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Currency Converter App</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .converter-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        select, input {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(180, 190, 210, 0.5);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        select:focus, input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
+            border-color: rgba(66, 153, 225, 0.5);
+        }
+        .exchange-icon {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .exchange-icon:hover {
+            transform: rotate(180deg);
+        }
+        .currency-flag {
+            width: 24px;
+            height: 16px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .result-box {
+            transition: all 0.3s ease;
+        }
+        .loading .loader {
+            display: inline-block;
+        }
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(100, 116, 139, 0.3);
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .currency-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .currency-chip {
+            background-color: #e2e8f0;
+            border-radius: 16px;
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .currency-chip:hover {
+            background-color: #cbd5e1;
+        }
+        .historical-rates {
+            height: 200px;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold mb-2 text-gray-800">Global Currency Converter</h1>
+            <p class="text-gray-600">Convert between all world currencies with real-time exchange rates</p>
+        </div>
+
+        <!-- Main Converter -->
+        <div class="converter-container p-6 md:p-8 mb-10">
+            <div class="flex flex-col md:flex-row gap-4 items-center">
+                <!-- From Currency -->
+                <div class="flex-1 w-full">
+                    <label class="block text-gray-700 mb-2 font-medium">From</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="amount-input" value="1" min="0" class="w-1/3 p-3 text-lg" placeholder="Amount">
+                        <select id="from-currency" class="flex-1 p-3 text-lg">
+                            <option value="" disabled>Loading currencies...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Exchange Icon -->
+                <div class="flex items-center justify-center py-2">
+                    <div class="exchange-icon bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full" id="swap-btn">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                </div>
+
+                <!-- To Currency -->
+                <div class="flex-1 w-full">
+                    <label class="block text-gray-700 mb-2 font-medium">To</label>
+                    <select id="to-currency" class="w-full p-3 text-lg">
+                        <option value="" disabled>Loading currencies...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Convert Button -->
+            <div class="mt-6 text-center">
+                <button id="convert-btn" class="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                    <span>Convert</span>
+                    <div class="loader ml-2"></div>
+                </button>
+            </div>
+
+            <!-- Result Box -->
+            <div id="result" class="mt-6 p-4 text-center bg-gray-100 rounded-lg hidden">
+                <div class="text-2xl font-bold text-gray-800" id="conversion-result"></div>
+                <div class="text-gray-600 mt-2" id="conversion-rate"></div>
+                <div class="text-sm text-gray-500 mt-1" id="last-updated"></div>
+            </div>
+
+            <!-- Popular Currencies -->
+            <div class="mt-8">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">Popular Currencies</h3>
+                <div class="currency-row" id="popular-currencies">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Exchange Rate Information -->
+        <div class="converter-container p-6 md:p-8 mb-10">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Currency Exchange Information</h2>
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">What is Currency Exchange?</h3>
+                <p class="text-gray-600">
+                    Currency exchange is the process of converting one currency into another at a specific rate known as the exchange rate. 
+                    These rates fluctuate based on various factors including economic indicators, political stability, and market speculation.
+                </p>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">How Exchange Rates Work</h3>
+                <p class="text-gray-600">
+                    Exchange rates are determined by the foreign exchange market (forex), which operates 24 hours a day and involves banks, 
+                    businesses, governments, and currency traders. Rates fluctuate based on supply and demand, inflation rates, 
+                    interest rates, political stability, and economic performance.
+                </p>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">Major World Currencies</h3>
+                <p class="text-gray-600 mb-3">
+                    The world has approximately 180 currencies recognized as legal tender. The most traded currencies include:
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ul class="list-disc list-inside text-gray-600">
+                        <li>US Dollar (USD) - United States</li>
+                        <li>Euro (EUR) - Eurozone</li>
+                        <li>Japanese Yen (JPY) - Japan</li>
+                        <li>British Pound (GBP) - United Kingdom</li>
+                        <li>Swiss Franc (CHF) - Switzerland</li>
+                    </ul>
+                    <ul class="list-disc list-inside text-gray-600">
+                        <li>Canadian Dollar (CAD) - Canada</li>
+                        <li>Australian Dollar (AUD) - Australia</li>
+                        <li>Chinese Yuan (CNY) - China</li>
+                        <li>Hong Kong Dollar (HKD) - Hong Kong</li>
+                        <li>New Zealand Dollar (NZD) - New Zealand</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center py-6 text-gray-600 text-sm">
+            <p>Exchange rates provided by ExchangeRate-API. Updated daily.</p>
+            <p class="mt-2">© 2025 Currency Converter App</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const amountInput = document.getElementById('amount-input');
+            const fromCurrencySelect = document.getElementById('from-currency');
+            const toCurrencySelect = document.getElementById('to-currency');
+            const convertBtn = document.getElementById('convert-btn');
+            const swapBtn = document.getElementById('swap-btn');
+            const resultDiv = document.getElementById('result');
+            const conversionResultDiv = document.getElementById('conversion-result');
+            const conversionRateDiv = document.getElementById('conversion-rate');
+            const lastUpdatedDiv = document.getElementById('last-updated');
+            const popularCurrenciesDiv = document.getElementById('popular-currencies');
+
+            let currencies = {};
+            let rates = {};
+
+            // Popular currencies
+            const popularCurrencyCodes = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'INR', 'PKR', 'AED', 'SAR'];
+
+            // Initialize app
+            async function initApp() {
+                try {
+                    // Fetch exchange rates from API
+                    const response = await fetch('https://open.exchangerate-api.com/v6/latest');
+                    const data = await response.json();
+                    
+                    if (data.result === 'success') {
+                        rates = data.rates;
+                        rates['EUR'] = 1 / rates['EUR']; // Add EUR as base
+                        
+                        // Get currency names
+                        await fetchCurrencyNames();
+                        
+                        // Populate currency selects
+                        populateCurrencySelects();
+                        
+                        // Set default values
+                        fromCurrencySelect.value = 'USD';
+                        toCurrencySelect.value = 'PKR'; // Default to Pakistani Rupee
+                        
+                        // Show last updated date
+                        const lastUpdated = new Date(data.time_last_update_utc);
+                        lastUpdatedDiv.textContent = `Rates last updated: ${lastUpdated.toLocaleDateString()}`;
+                        
+                        // Populate popular currencies
+                        populatePopularCurrencies();
+
+                        // Trigger initial conversion
+                        convertCurrency();
+                    } else {
+                        throw new Error('Failed to fetch exchange rates');
+                    }
+                } catch (error) {
+                    console.error('Error initializing app:', error);
+                    alert('Failed to load currency data. Please try again later.');
+                }
+            }
+
+            // Fetch currency names
+            async function fetchCurrencyNames() {
+                try {
+                    const response = await fetch('https://openexchangerates.org/api/currencies.json');
+                    currencies = await response.json();
+                } catch (error) {
+                    console.error('Error fetching currency names:', error);
+                    // If fetching names fails, use codes as names
+                    Object.keys(rates).forEach(code => {
+                        currencies[code] = code;
+                    });
+                }
+            }
+
+            // Populate currency selects
+            function populateCurrencySelects() {
+                // Clear existing options
+                fromCurrencySelect.innerHTML = '';
+                toCurrencySelect.innerHTML = '';
+                
+                // Sort currency codes alphabetically
+                const currencyCodes = Object.keys(rates).sort();
+                
+                // Add options to selects
+                currencyCodes.forEach(code => {
+                    const name = currencies[code] || code;
+                    const fromOption = new Option(`${code} - ${name}`, code);
+                    const toOption = new Option(`${code} - ${name}`, code);
+                    
+                    fromCurrencySelect.add(fromOption);
+                    toCurrencySelect.add(toOption);
+                });
+            }
+
+            // Populate popular currencies
+            function populatePopularCurrencies() {
+                popularCurrenciesDiv.innerHTML = '';
+                
+                popularCurrencyCodes.forEach(code => {
+                    if (rates[code]) {
+                        const chip = document.createElement('div');
+                        chip.className = 'currency-chip';
+                        chip.textContent = code;
+                        chip.addEventListener('click', () => {
+                            toCurrencySelect.value = code;
+                            convertCurrency();
+                        });
+                        popularCurrenciesDiv.appendChild(chip);
+                    }
+                });
+            }
+
+            // Convert currency
+            function convertCurrency() {
+                const amount = parseFloat(amountInput.value);
+                const fromCurrency = fromCurrencySelect.value;
+                const toCurrency = toCurrencySelect.value;
+                
+                if (isNaN(amount) || amount <= 0) {
+                    alert('Please enter a valid amount');
+                    return;
+                }
+                
+                // Show loading state
+                convertBtn.classList.add('loading');
+                
+                try {
+                    // Calculate conversion
+                    const fromRate = rates[fromCurrency];
+                    const toRate = rates[toCurrency];
+                    
+                    const convertedAmount = (amount * toRate) / fromRate;
+                    const exchangeRate = toRate / fromRate;
+                    
+                    // Display result
+                    resultDiv.classList.remove('hidden');
+                    conversionResultDiv.textContent = `${amount.toLocaleString()} ${fromCurrency} = ${convertedAmount.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 4
+                    })} ${toCurrency}`;
+                    
+                    conversionRateDiv.textContent = `1 ${fromCurrency} = ${exchangeRate.toLocaleString(undefined, {
+                        minimumFractionDigits: 4,
+                        maximumFractionDigits: 6
+                    })} ${toCurrency}`;
+                } catch (error) {
+                    console.error('Conversion error:', error);
+                    alert('Failed to convert currency. Please try again.');
+                } finally {
+                    // Hide loading state
+                    convertBtn.classList.remove('loading');
+                }
+            }
+
+            // Swap currencies
+            function swapCurrencies() {
+                const fromCurrency = fromCurrencySelect.value;
+                const toCurrency = toCurrencySelect.value;
+                
+                fromCurrencySelect.value = toCurrency;
+                toCurrencySelect.value = fromCurrency;
+                
+                convertCurrency();
+            }
+
+            // Event listeners
+            convertBtn.addEventListener('click', convertCurrency);
+            swapBtn.addEventListener('click', swapCurrencies);
+            
+            // Auto-convert when input changes
+            amountInput.addEventListener('input', convertCurrency);
+            fromCurrencySelect.addEventListener('change', convertCurrency);
+            toCurrencySelect.addEventListener('change', convertCurrency);
+            
+            // Initialize app
+            initApp();
+        });
+    </script>
+</body>
+</html>
